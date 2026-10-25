@@ -200,6 +200,28 @@ WSL で Linux 用のバイナリを使って動かせば、Windows 特有の問�
   → 「経路の候補」の 3（1.3.2 で直接読む）は**使えない**。
   残るのは、**v0.49.6 で一度開いて 0.49.6 の DB にしてから 1.3.2 で読む**方法（候補 1 と 2）。
 
+## 試し: v0.49.6 で開き直してから 1.3.2 で読む
+確認日: 2026-10-25。スクリプト: [../scripts/trial-canonicalize.ps1](../scripts/trial-canonicalize.ps1)（対象は sql_viz_202604_old のコピー）
+
+### 手順と結果
+1. `.beads` を `work/trial/sql_viz_202604_old-v0496-2/sealed-source/.beads` にコピーし、`sealed-source` で `git init` した（公式スクリプトと同じ）。
+2. v0.49.6 で `bd --no-daemon --no-auto-import init --force --prefix sql_viz_202604` を実行した → exit 0。
+   - **DB の `bd_version` は 0.49.0 から 0.49.6 に変わり、件数は 27 件（closed 27）のままだった。**
+   - `sealed-source` の直下に `AGENTS.md` と `.gitattributes` ができた。本物のリポジトリでこのコマンドを実行してはいけない。
+3. 1.3.2 で `bd migrate legacy-sqlite` を実行した → **`Error: legacy SQLite schema drift in issues`（exit 1）**。
+   - なお、`-C probe` を付けて実行すると `no beads project found` で拒否される。cd してから実行する（公式スクリプトもそうしている）。
+4. 元の `.beads` のハッシュは、最後まで変わらなかった。
+
+### schema drift の正体
+作業用のフォルダで 0.49.6 の新しい DB を作り（`work/trial/fresh-0496`）、開き直した DB と比べた。
+- issues テーブルの 57 列は、名前・型・既定値がすべて同じ。dependencies、labels、comments、events も同じ。
+- 違うのは**列の並び順**だけ。0.49.0 から上げた DB では、あとから足された列（`spec_id`、`wisp_type`、`metadata` など）が末尾に `ALTER TABLE` で追加されている。新しく作った 0.49.6 の DB では、それらは途中に並んでいる（cid 19 以降がずれる）。
+- 1.3.2 の `legacy-sqlite` は、列の並び順まで含めて本物の 0.49.6 / 0.50.3 と同じ形かを確かめているとみられる。
+
+### 分かったこと
+- 0.49.0 から始める場合、`legacy-sqlite`（公式スクリプトの direct 方式）は使えない。
+- 公式スクリプトの **canonicalize 方式**（v0.49.6 で `init --force` → **v0.49.6 で JSONL を export** → 1.3.2 で `init --from-jsonl` → 1.3.2 で export して比べる）は、`legacy-sqlite` を使わないので、この問題に当たらない。これを本命の経路とする。
+
 ## 未確認（次にやること）
 - [x] 公式の `docs/getting-started/upgrading.md`（v1.3.2）を読む（2026-10-25、上の節に記録）
 - [ ] 各 `.beads` の構成が本当に「`*.db` が 1 つ」か（棚卸しで確認）
@@ -213,7 +235,8 @@ WSL で Linux 用のバイナリを使って動かせば、Windows 特有の問�
 - [ ] 1.3.2 の migration 0059 の注意書きの全文
 - [x] Windows での入手方法（2026-10-25、公式の zip で動く。上の「公式バイナリの入手と確認」に記録）
 - [x] 1.3.2 の `bd migrate legacy-sqlite` が 0.49.0 の DB を読めるか（2026-10-25、読めない。上の「試し」に記録）
-- [ ] コピーを v0.49.6 で開くと、DB の `bd_version` が 0.49.6 になり、1.3.2 で読めるようになるか
+- [x] コピーを v0.49.6 で開くと、DB の `bd_version` が 0.49.6 になり、1.3.2 で読めるようになるか（2026-10-25、版は 0.49.6 になるが、列の並び順の違いで `legacy-sqlite` は拒否する）
+- [ ] canonicalize 方式（v0.49.6 で export → 1.3.2 で `init --from-jsonl`）で、issue が 1 件ずつ一致するか
 - [ ] 古い hooks と新しい版を組み合わせたときに何が起きるか（試験移行で確かめる）
 - [x] bd daemon が動いているか（2026-10-25、動いていない。上の節に記録）
 - [ ] daemon の自動起動を止める方法（`--no-daemon`、環境変数）を 0.49.0 で確かめる
