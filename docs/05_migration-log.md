@@ -66,6 +66,49 @@
 - **移行の前に作られた worktree**（chromeext_insta_reels の `.claude/worktrees/` に 14 個、sql_viz_202604 に 3 個（locked））では、`.beads` が古く DB もないため、`Error: no beads database found` になり、`bd init` を勧めるヒントが出る。worktree の中の AGENTS.md も古いまま。
 - **移行後のブランチから新しく作った worktree は問題ない。** worktree の中の bd は元のリポジトリのストアを使い（`bd where` が元の `.beads` を指す）、件数も同じだった。
 
+### 移行の commit を dev / main へ反映（2026-10-25）
+利用者の指示: main まで反映させてよい。dev → main を PR で行う決まりのリポジトリでは、dev まで反映させて PR を作る。途中の feature ブランチもマージしてよい。
+方針: main について決まり（エージェントが触れない、ユーザーが手で入れる、PR 必須）があるリポジトリでは PR にし、決まりがないリポジトリでは main まで反映して push した。`release` と `preview` には触れていない。
+マージは [../scripts/propagate.ps1](../scripts/propagate.ps1) が `work/merge/` に一時的な worktree を作って行った（利用者の作業ツリーは切り替えていない）。force push はしていない。
+
+| リポジトリ | やったこと | 結果 |
+|---|---|---|
+| yo16/calc_20260306 | dev を push、PR | [PR #17](https://github.com/yo16/calc_20260306/pull/17) |
+| yo16/calc_20260317 | dev を push、dev → main をマージ（マージ commit）、main を push | main `aa443b6` |
+| yo16/chromeext_insta_reels | dev を push（新規）、PR | [PR #1](https://github.com/yo16/chromeext_insta_reels/pull/1) |
+| yo16/kakeizu | dev を push、main を fast-forward、push | main `fe06e22`（dev の 108 commit が main に入った） |
+| yo16/keihi_track | dev を push、dev → main をマージ、push | main `1f86928` |
+| yo16/my_tenbin_ai | dev を push、PR | [PR #1](https://github.com/yo16/my_tenbin_ai/pull/1) |
+| yo16/n8n-insights-viewer | main（移行の commit がある）→ dev を fast-forward、dev を push（新規）、PR | [PR #1](https://github.com/yo16/n8n-insights-viewer/pull/1) |
+| yo16/newsletter-ai-chat | dev を push、main を fast-forward、push | main `39b6c5a` |
+| yo16/qr_code_create | dev を push、dev → main をマージ、push | main `290ff0e` |
+| yo16/salon-daily-fetcher | dev を push（新規）、main を fast-forward、push | main `62c697e` |
+| yo16/simple-translator | feature/bd-simple-translator-c2n.5 → dev（`--no-ff`）、dev を push（新規）、PR | [PR #1](https://github.com/yo16/simple-translator/pull/1) |
+| yo16/sql_viz_202604 | dev を origin/dev に合わせ、feature/bd-sql_viz_202604_2-ldb → dev（`--no-ff`、ローカルの dev `49ce924`） | **push で止まった**。HTTPS の認証が通らない（`Invalid username or token`） |
+| yo16/sql_viz_202604_3 | なし | origin がない |
+| yo16/sql_viz_202604_old | なし | origin が sql_viz_202604 と同じで、dev が食い違っている（30 進み、165 遅れ）。使っていないのでローカルにとどめた |
+| yo16/two-device-translator | — | **push で止まった**。HTTPS でユーザー名の入力を求められた |
+| smallpiece2024/bigquery-mcp | dev を push、main を `--ff-only`、push | main `1e3bb5f` |
+| smallpiece2024/goto-goto | main を push | `25aac2d` |
+| smallpiece2024/kuchikomi_helper | main を push | `8081327` |
+| smallpiece2024/shien-mitsukaru | main を push（GitHub Actions のデプロイが走る） | `5fda8fe` |
+| machinokikakushitsu/website2026 | dev を push、PR | [PR #11](https://github.com/machinokikakushitsu/website2026/pull/11) |
+| kuronekotaiwan-matsuri/y2026 | main を push | `62a4eb1` |
+| takatsu-connect/takatsu-connect-advisor | feature/bd-takatsu-connect-advisor-4l4.2 → dev（`--no-ff`）、dev を push（`e0d8c8c`） | **PR を作れなかった**。gh のアカウントが collaborator でない |
+| takatsu-connect/tc-wrapper | main を push | `577493f` |
+| small-piece-2023/minecraft_piece | develop を `chore/bd-1.3.2` として push、develop への PR（main への PR は禁止の決まり） | [PR #27](https://github.com/smallpiece2024/minecraft_piece/pull/27)（組織名が変わって転送されている） |
+
+途中の失敗: 最初、スクリプトの中の関数を `Git` という名前にしたため、中の `git` が関数自身を呼び続けて止まった（PowerShell は大文字小文字を区別しない）。関数名を `Invoke-Git` にし、`git.exe` を明示して直した。push や変更はその前に起きていない。
+
+### 古い worktree の片づけ（2026-10-25）
+[../scripts/survey-worktrees.ps1](../scripts/survey-worktrees.ps1) で 48 個を調べ、[../scripts/remove-safe-worktrees.ps1](../scripts/remove-safe-worktrees.ps1) で片づけた（`--force` は使っていない。ブランチは消していない）。
+- 消した: chromeext_insta_reels の 14 個（locked でない、未コミットの変更なし、commit はすべて dev にある）
+- 記録だけ片づけた: sql_viz_202604_old の 9 個（フォルダがもうない。`git worktree prune`）
+- 残した:
+  - qr_code_create の 21 個。commit はすべて dev にあるが、未コミットの変更がある。14 個は `.claude/settings.local.json` だけ。7 個はソースやテストの変更（ガイドのページ、CSS、テストなど）
+  - sql_viz_202604 の 3 個。locked。変更は `.claude/settings.local.json` だけ
+  - takatsu-connect-advisor の 1 個。locked。未コミットの変更が 11 件、マージされていない commit が 1 つ
+
 ### 気づいたこと: 利用統計の送信
 - PATH の bd を初めてそのまま実行したとき、`Thanks for using bd! Quick heads-up: bd shares anonymous usage metrics` と出た。
 - `bd metrics` の表示: `Anonymous usage metrics: ON`。送るのは、実行したコマンドの名前、bd の版、OS（端末から作った ID つき）。送り先は `https://gastownhall-eventsapi.com/mp/collect`。issue の中身、パス、remote、利用者は送らない、とある。
