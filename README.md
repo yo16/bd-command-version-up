@@ -8,7 +8,7 @@
 | 1 | 現状と最新版の把握 | 途中 | [docs/01_current-state.md](docs/01_current-state.md) |
 | 2 | 対象の検索と棚卸し | 済 | [docs/02_targets.md](docs/02_targets.md) |
 | 3 | 方式の検討 | 途中（リハーサル済み、手順は案） | [docs/03_rehearsal.md](docs/03_rehearsal.md)、[docs/04_method.md](docs/04_method.md) |
-| 3.5 | バックアップ | 未 | |
+| 3.5 | バックアップ | 済 | `backup/2026-10-25/`（gitignore）、[docs/04_method.md](docs/04_method.md) |
 | 4a | 試験移行（影響の小さい 1〜2 件） | 未 | |
 | 4b | 本番移行（1 件ずつ記録） | 未 | |
 | 5 | 検証（件数・未完了 issue の一致、hooks） | 未 | |
@@ -19,3 +19,5 @@
 - `docs/` 手順・考え方・調査結果
 - `references/` 調査に使った外部資料の写し（取得日つき）
 - `scripts/` 調査や移行に使うスクリプト
+- `backup/` 移行前のバックアップ（`.beads`、hooks、旧版の `bd.exe`）。git の管理外
+- `work/` 作業用（ダウンロードしたバイナリ、リハーサルのコピー）。git の管理外

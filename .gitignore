@@ -1,2 +1,4 @@
 # 作業用（ダウンロードしたバイナリ、DB のコピーなど）。commit しない
 /work/
+# 移行前のバックアップ（各リポジトリの .beads、hooks、旧版の bd.exe）。commit しない
+/backup/

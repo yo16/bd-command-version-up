@@ -70,11 +70,18 @@
 - 対象のリポジトリで作業しているエディタやエージェントを止める。bd と dolt のプロセスがないことを確かめる。
 - 棚卸しをやり直して（[../scripts/inventory.ps1](../scripts/inventory.ps1)）、今日の数字から変わっていないかを見る。変わっていれば、その数字を基準にする。
 
-### 3.5 バックアップ
-- 24 か所の `.beads` を丸ごと `D:\beads-backup\2026-10-xx\<ルート>\<リポジトリ>\.beads` にコピーする。あわせて、bd の hooks（`.git\hooks` の pre-commit、post-merge ほか）もコピーする。
-- 全ファイルの SHA-256 を `manifest.csv` に記録し、コピー元と一致することを確かめる。
-- 今の `C:\Users\yoichiro\go\bin\bd.exe`（0.49.0 dev）もコピーする。
-- バックアップはどのリポジトリの外にも置く（git に入らないように）。
+### 3.5 バックアップ（2026-10-25 実施済み）
+- 置き場所: **このリポジトリの `backup/2026-10-25/`**（`.gitignore` で除外）。`D:\beads-backup` は作らない（利用者の指示）。
+- スクリプト: [../scripts/backup.ps1](../scripts/backup.ps1)。結果: [backup_2026-10-25.csv](backup_2026-10-25.csv)
+- 中身:
+  - `<ルート>\<リポジトリ>\.beads\`: `.beads` を丸ごとコピーしたもの
+  - `<ルート>\<リポジトリ>\hooks\git-hooks\`: `.git\hooks` の `*.sample` 以外
+  - `<ルート>\<リポジトリ>\hooks\core-hooksPath\`: `core.hooksPath` が別の場所を指す場合は、そこにあるもの
+  - `<ルート>\<リポジトリ>\git-state.json`: ブランチ、HEAD、`core.hooksPath`、`.beads` の git status
+  - `bin\bd.exe`: `C:\Users\yoichiro\go\bin\bd.exe`（`bd version 0.49.0 (dev)`、SHA-256 `4964C96B…7DCD`）
+  - `manifest.csv`: コピーしたすべてのファイルについて、コピー元とコピー先の SHA-256
+- 結果: **24 / 24 成功。ファイル 419 個で、ハッシュの不一致は 0。** コピーの前後で、コピー元の `.beads` は変わらなかった。合計 91 MB。
+- 分かったこと: takatsu-connect-advisor（`core.hooksPath` は `.husky`）と sql_viz_202604_old（`core.hooksPath` は sql_viz_202604 の `.git\hooks`）にも、`.git\hooks` に bd の hooks が残っている。どちらも使われていない。
 
 ### 4a. 試験移行（1〜2 件）
 - 対象: sql_viz_202604_old（使っていない。27 件）。もう 1 件は calc_20260317（18 件、全件 closed）。
@@ -103,7 +110,7 @@
 
 ### 戻し方（リポジトリごと）
 1. 新しい `.beads` を消す（`embeddeddolt/` ごと）。
-2. バックアップの `.beads` を元の場所へ戻し、SHA-256 が manifest と一致することを確かめる。
+2. バックアップ（`backup/2026-10-25/<ルート>/<リポジトリ>/.beads`）を元の場所へ戻し、SHA-256 が `manifest.csv` と一致することを確かめる。
 3. バックアップの hooks を `.git\hooks` に戻す。
 4. PATH を切り替えた後なら、`go\bin\bd.exe` を 0.49.0 に戻す（ほかのリポジトリも戻すことになる）。
 
@@ -115,8 +122,8 @@
 
 まだ決めていないもの（既定の案のまま進め、変えるときは指示をもらう）:
 - 5. 対象から外すリポジトリ → 外さない（24 か所すべて移行する）
-- 6. バックアップの置き場所 → `D:\beads-backup\`
-- feature ブランチの上にある 3 か所 → 今のブランチに commit する
+- 6. バックアップの置き場所 → このリポジトリの `backup/`（gitignore）。利用者の指示（2026-10-25）
+- feature ブランチの上にある 3 か所 → 今のブランチに commit する。利用者の了承済み（2026-10-25）
 
 ## 決めること（検討時の選択肢。記録のために残す）
 1. **`issues.jsonl` を git で管理し続けるか**
