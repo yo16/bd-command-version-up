@@ -46,6 +46,17 @@
   - `export.auto: false`、`export.git-add: false`（JSONL は自動で更新されない）
   - `backup.enabled: false`、`backup.git-push: false`、`dolt.auto-push`: 既定で無効（勝手に push しない）
 
+### export.auto と export.git-add（[../scripts/trial-export-auto.ps1](../scripts/trial-export-auto.ps1)、作業用のコピーで実施）
+- `bd config set export.auto true` などの設定は `.beads/config.yaml` に書かれる（git で管理されるファイル）。
+- **既定の `export.interval`（60 秒）だと、直前の export から 60 秒以内の書き込みは書き出されない。** 次に何かを書き込むまで JSONL に出ないので、そのまま commit すると最新の変更が git に入らない。
+  `0s` を設定しても既定の 1 分として扱われた（`auto-export: throttled (last export 45s ago, interval 1m0s)`）。
+- **`export.interval` を `1s` にすると、書き込むたびに JSONL を書き出し、`git add` までする**（`auto-export: wrote 26 issues ... (full, 749ms)`。git の状態は `M  .beads/issues.jsonl`）。
+  → 各リポジトリで `export.auto true`、`export.git-add true`、`export.interval 1s` を設定する。
+- 書き込むたびに、次の警告が標準エラーに出る:
+  `beads: auto-export warning: no Dolt remote configured.`
+  `beads: repair: add a git origin, then run 'bd dolt remote add origin <git-remote-url>' and 'bd dolt push'.`
+  **エージェントがこの修理の案内に従うと、GitHub の origin に Dolt のデータを push してしまう。** AGENTS.md に、この警告は無視し、`bd dolt remote add`、`bd dolt push`、`bd sync` は実行しないと書く。
+
 ### エージェント向け文書（[agent-docs_2026-10-25.csv](agent-docs_2026-10-25.csv)、[../scripts/scan-agent-docs.ps1](../scripts/scan-agent-docs.ps1)）
 - 24 か所中 20 か所の AGENTS.md が同じテンプレートでできている。その中に `bd onboard` が 1 回、`bd sync` が 2 回ある。
   `bd sync` は、作業を終えるときに必ず実行する手順（`git pull --rebase` → `bd sync` → `git push`）に入っている。
@@ -96,7 +107,18 @@
 3. バックアップの hooks を `.git\hooks` に戻す。
 4. PATH を切り替えた後なら、`go\bin\bd.exe` を 0.49.0 に戻す（ほかのリポジトリも戻すことになる）。
 
-## 決めること
+## 決めたこと（2026-10-25、利用者の回答）
+1. `issues.jsonl` を git で**管理し続ける**。各リポジトリで `export.auto` と `export.git-add` を有効にする。
+2. bd の hooks は**外す**。
+3. 各リポジトリでの commit は **Claude が行う**。push は利用者が確認してから行う。
+4. エージェント向け文書（AGENTS.md、CLAUDE.md）は**直す**。
+
+まだ決めていないもの（既定の案のまま進め、変えるときは指示をもらう）:
+- 5. 対象から外すリポジトリ → 外さない（24 か所すべて移行する）
+- 6. バックアップの置き場所 → `D:\beads-backup\`
+- feature ブランチの上にある 3 か所 → 今のブランチに commit する
+
+## 決めること（検討時の選択肢。記録のために残す）
 1. **`issues.jsonl` を git で管理し続けるか**
    - 案 A（おすすめ）: 続ける。各リポジトリで `bd config set export.auto true` と `bd config set export.git-add true` を設定し、書き込むたびに JSONL を更新させる。今と同じく issue の内容が git の履歴に残り、GitHub でも見える。
    - 案 B: やめる。データは Dolt のストアだけに置く（git には入らない。この PC が壊れると消える）。バックアップは `bd backup init` で別の場所へ取る。
