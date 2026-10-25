@@ -7,7 +7,7 @@
 | 0 | 記録の場所と書式を決める | 済 | このリポジトリ |
 | 1 | 現状と最新版の把握 | 途中 | [docs/01_current-state.md](docs/01_current-state.md) |
 | 2 | 対象の検索と棚卸し | 済 | [docs/02_targets.md](docs/02_targets.md) |
-| 3 | 方式の検討 | 途中（コピーで全 24 か所のリハーサル済み） | [docs/03_rehearsal.md](docs/03_rehearsal.md) |
+| 3 | 方式の検討 | 途中（リハーサル済み、手順は案） | [docs/03_rehearsal.md](docs/03_rehearsal.md)、[docs/04_method.md](docs/04_method.md) |
 | 3.5 | バックアップ | 未 | |
 | 4a | 試験移行（影響の小さい 1〜2 件） | 未 | |
 | 4b | 本番移行（1 件ずつ記録） | 未 | |
