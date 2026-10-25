@@ -222,6 +222,31 @@ WSL で Linux 用のバイナリを使って動かせば、Windows 特有の問�
 - 0.49.0 から始める場合、`legacy-sqlite`（公式スクリプトの direct 方式）は使えない。
 - 公式スクリプトの **canonicalize 方式**（v0.49.6 で `init --force` → **v0.49.6 で JSONL を export** → 1.3.2 で `init --from-jsonl` → 1.3.2 で export して比べる）は、`legacy-sqlite` を使わないので、この問題に当たらない。これを本命の経路とする。
 
+## 試し: canonicalize 方式を最後まで通す（成功）
+確認日: 2026-10-25。スクリプト: [../scripts/trial-cutover.ps1](../scripts/trial-cutover.ps1)（対象は sql_viz_202604_old のコピー）
+
+公式スクリプトの canonicalize 方式を PowerShell で書き直した。`env -i` は使わず、公式スクリプトが設定する環境変数（`BD_DISABLE_METRICS`、`BEADS_NO_DAEMON` など）だけを足した。
+
+| 手順 | 実行した場所 | コマンド | 結果 |
+|---|---|---|---|
+| 1 | `sealed-source`（git init 済み、`.beads` のコピー） | v0.49.6 `--no-daemon --no-auto-import init --force --quiet --prefix sql_viz_202604` | exit 0 |
+| 2 | 同上 | v0.49.6 `--no-daemon --no-auto-import export --format jsonl -o export.jsonl` | exit 0、27 件 |
+| 3 | `cutover`（git init 済み、`.beads/issues.jsonl` だけを置く） | v1.3.2 `init --from-jsonl --quiet --non-interactive --skip-hooks --skip-agents --prefix sql_viz_202604` | exit 0 |
+| 4 | 同上 | v1.3.2 `export --all -o candidate-export.jsonl` | `Exported 27 issues`、exit 0 |
+
+- cutover の `.beads/metadata.json` は `{"database":"dolt","backend":"dolt","dolt_mode":"embedded","dolt_database":"sql_viz_202604",...}`。`embeddeddolt/` ができた。
+- 突き合わせ（id ごとに status、title、ラベル数、依存数、コメント数）:
+  - 元の DB → v0.49.6 の export: 27 / 27、抜け 0、余分 0、違い 0
+  - v0.49.6 の export → v1.3.2 の export: 27 / 27、抜け 0、余分 0、違い 0
+  - 元の DB → v1.3.2 の export: 27 / 27、抜け 0、余分 0、違い 0
+- 元の `.beads` のハッシュは最後まで変わらなかった。
+
+### この試しで確かめられていないこと
+- このリポジトリには**ラベルとコメントが 0 件**しかない（依存は 17 件あり、一致した）。ラベルとコメントは、それらがあるリポジトリで確かめる必要がある。
+- 比べたのは上の 5 項目だけ。説明文、優先度、日時などは比べていない。公式スクリプトは全項目を正規化して比べている（`normalize_export`、132〜183 行）。
+- **events（変更の履歴）は引き継がれない。** このリポジトリの DB には 71 件ある。`bd export` は issue だけを書き出すもので（手順書の「`bd export` captures issues, not Dolt history or config」）、移行後の DB には issue ごとの変更履歴が残らない。元の `.beads` のバックアップには残る。
+- DB に入っている設定（`config` テーブル。issue_prefix 以外のもの）も引き継がれないとみられる。
+
 ## 未確認（次にやること）
 - [x] 公式の `docs/getting-started/upgrading.md`（v1.3.2）を読む（2026-10-25、上の節に記録）
 - [ ] 各 `.beads` の構成が本当に「`*.db` が 1 つ」か（棚卸しで確認）
@@ -236,7 +261,9 @@ WSL で Linux 用のバイナリを使って動かせば、Windows 特有の問�
 - [x] Windows での入手方法（2026-10-25、公式の zip で動く。上の「公式バイナリの入手と確認」に記録）
 - [x] 1.3.2 の `bd migrate legacy-sqlite` が 0.49.0 の DB を読めるか（2026-10-25、読めない。上の「試し」に記録）
 - [x] コピーを v0.49.6 で開くと、DB の `bd_version` が 0.49.6 になり、1.3.2 で読めるようになるか（2026-10-25、版は 0.49.6 になるが、列の並び順の違いで `legacy-sqlite` は拒否する）
-- [ ] canonicalize 方式（v0.49.6 で export → 1.3.2 で `init --from-jsonl`）で、issue が 1 件ずつ一致するか
+- [x] canonicalize 方式（v0.49.6 で export → 1.3.2 で `init --from-jsonl`）で、issue が 1 件ずつ一致するか（2026-10-25、sql_viz_202604_old で 27 件すべて一致。ラベルとコメントは未確認）
+- [ ] 全項目（説明文、日時、コメントの本文、ラベルの名前）まで一致するか。ラベルやコメントのあるリポジトリでも通るか
+- [ ] events（変更の履歴）が引き継がれないことを受け入れるか（利用者に確認する）
 - [ ] 古い hooks と新しい版を組み合わせたときに何が起きるか（試験移行で確かめる）
 - [x] bd daemon が動いているか（2026-10-25、動いていない。上の節に記録）
 - [ ] daemon の自動起動を止める方法（`--no-daemon`、環境変数）を 0.49.0 で確かめる
