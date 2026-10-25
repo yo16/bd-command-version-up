@@ -60,6 +60,12 @@
 ### 移行後にやったこと
 - goto-goto の `goto-3ol`（bd のアップグレードを管理していた issue）を閉じ、閉じた理由に結果を書いた。自動で書き出された `issues.jsonl` を commit した（`25aac2d`、main）。
 
+### 気づいたこと: 移行の commit を含まないブランチと worktree（2026-10-25、作業用のコピーで確認）
+- **移行の commit を含まないブランチに切り替えると、`.beads/metadata.json` と `config.yaml` が古い中身に戻る。** その状態で 1.3.2 の `bd list` を実行すると、エラーにならず `No issues found.`（exit 0）になる。データは `embeddeddolt/` に残っているが見えない。このまま `bd create` すると、別の場所に書き込まれるおそれがある。
+  → 切り替えることのあるブランチ（feature ブランチのリポジトリなら dev、dev で移行したリポジトリなら main など）にも、移行の commit を取り込む必要がある。
+- **移行の前に作られた worktree**（chromeext_insta_reels の `.claude/worktrees/` に 14 個、sql_viz_202604 に 3 個（locked））では、`.beads` が古く DB もないため、`Error: no beads database found` になり、`bd init` を勧めるヒントが出る。worktree の中の AGENTS.md も古いまま。
+- **移行後のブランチから新しく作った worktree は問題ない。** worktree の中の bd は元のリポジトリのストアを使い（`bd where` が元の `.beads` を指す）、件数も同じだった。
+
 ### 気づいたこと: 利用統計の送信
 - PATH の bd を初めてそのまま実行したとき、`Thanks for using bd! Quick heads-up: bd shares anonymous usage metrics` と出た。
 - `bd metrics` の表示: `Anonymous usage metrics: ON`。送るのは、実行したコマンドの名前、bd の版、OS（端末から作った ID つき）。送り先は `https://gastownhall-eventsapi.com/mp/collect`。issue の中身、パス、remote、利用者は送らない、とある。
