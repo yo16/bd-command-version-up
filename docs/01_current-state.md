@@ -188,6 +188,18 @@ WSL で Linux 用のバイナリを使って動かせば、Windows 特有の問�
 ステップ 3 で、順番（全件の移行を一気に済ませるか、移行中は hooks を一時的に外すか）を決める。
 上の 1〜3 は推測で、試験移行（4a）で実際に確かめる。
 
+## 試し: 1.3.2 は 0.49.0 の DB を直接読めるか
+確認日: 2026-10-25。スクリプト: [../scripts/trial-legacy-sqlite.ps1](../scripts/trial-legacy-sqlite.ps1)
+
+- 対象: sql_viz_202604_old の `.beads` を `work/trial/sql_viz_202604_old/.beads` にコピーし、そのコピーで試した。
+- 実行したコマンド（空のフォルダ `probe` から。`BD_DISABLE_METRICS=1`、`BD_NON_INTERACTIVE=1` を設定）:
+  `bd(1.3.2) -C probe migrate legacy-sqlite --source-db <コピー>\beads.db --output legacy-export.jsonl`
+- 結果: **`Error: unsupported legacy SQLite release "0.49.0"`（exit 1）。読めない。**
+- コピーと元の `.beads` は、実行の前後でハッシュが同じ（`AAE50F15…D9517`）。`probe` にもファイルはできなかった。
+- 公式スクリプトが受け付ける版（v0.49.6 / v0.50.3 だけが direct）と同じ制限が、bd 本体にもある。
+  → 「経路の候補」の 3（1.3.2 で直接読む）は**使えない**。
+  残るのは、**v0.49.6 で一度開いて 0.49.6 の DB にしてから 1.3.2 で読む**方法（候補 1 と 2）。
+
 ## 未確認（次にやること）
 - [x] 公式の `docs/getting-started/upgrading.md`（v1.3.2）を読む（2026-10-25、上の節に記録）
 - [ ] 各 `.beads` の構成が本当に「`*.db` が 1 つ」か（棚卸しで確認）
@@ -200,7 +212,8 @@ WSL で Linux 用のバイナリを使って動かせば、Windows 特有の問�
 - [ ] 1.3.0 の「v1.2.2 users 向け Breaking changes」と CHANGELOG `[1.2.1]` 節の要点
 - [ ] 1.3.2 の migration 0059 の注意書きの全文
 - [x] Windows での入手方法（2026-10-25、公式の zip で動く。上の「公式バイナリの入手と確認」に記録）
-- [ ] 1.3.2 の `bd migrate legacy-sqlite` が 0.49.0 の DB を読めるか（作業用のコピーで試す）
+- [x] 1.3.2 の `bd migrate legacy-sqlite` が 0.49.0 の DB を読めるか（2026-10-25、読めない。上の「試し」に記録）
+- [ ] コピーを v0.49.6 で開くと、DB の `bd_version` が 0.49.6 になり、1.3.2 で読めるようになるか
 - [ ] 古い hooks と新しい版を組み合わせたときに何が起きるか（試験移行で確かめる）
 - [x] bd daemon が動いているか（2026-10-25、動いていない。上の節に記録）
 - [ ] daemon の自動起動を止める方法（`--no-daemon`、環境変数）を 0.49.0 で確かめる
