@@ -1,4 +1,4 @@
-# db-comman-version-up
+# bd-command-version-up
 ローカルの様々なところで使っている`bd`コマンドのバージョンアップの作業フォルダ
 
 ## 進め方
