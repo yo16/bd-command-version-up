@@ -148,6 +148,46 @@ v0.49.0 の Windows 用 zip だけほかの版より極端に大きい（同じ�
 `cp -Rp`、`find`、`dd`、`cmp`、プロセス置換（`<(...)`）は Git Bash にもある。
 WSL で Linux 用のバイナリを使って動かせば、Windows 特有の問題はほぼ避けられる（`/mnt/d/...` のコピーを扱う）。
 
+## 公式バイナリの入手と確認
+確認日: 2026-10-25
+
+### 入手と検証
+- `gh release download <版> --repo gastownhall/beads -p "beads_<版>_windows_amd64.zip" -p checksums.txt -D work/downloads/<版>`
+  （`work/` は `.gitignore` で除外。ダウンロードした zip と checksums.txt はここに残す）
+- SHA-256 は 3 つとも `checksums.txt` と一致した。
+
+| 版 | zip の SHA-256 | 展開先 | `bd version` |
+|---|---|---|---|
+| v0.49.0 | `ba849f6a720fb57aaeddcf624cc72303b50cb4c8904de78403fc2be35d78f0a9` | `C:\Users\yoichiro\beads-bin\v0.49.0\bd.exe`（119,327,232 バイト） | `bd version 0.49.0 (b5178e18: HEAD@b5178e1895e7)` |
+| v0.49.6 | `b89c275160a51b5bc7e3a4faae8f0db6c1b850c908234779c0b783526f1c21df` | `C:\Users\yoichiro\beads-bin\v0.49.6\bd.exe`（35,132,928 バイト） | `bd version 0.49.6 (c064f2aa: HEAD@c064f2aa9981)` |
+| v1.3.2 | `e59cb7742278185493e30c2eb97cb318db8d7a58c28ee5e88c2a30c7630c0975` | `C:\Users\yoichiro\beads-bin\v1.3.2\bd.exe`（156,987,392 バイト） | `bd version 1.3.2 (9b65b9e19: HEAD@9b65b9e198ac)` |
+
+- どれも PATH には入れていない。PATH 上の bd は今までどおり `C:\Users\yoichiro\go\bin\bd.exe`（0.49.0 dev）。
+- **Windows で入手するには、公式の zip で足りる。** 展開するだけで動き、`go install` や CGO の準備は要らない。
+- 公式スクリプトは `bd version` の出力から版を確かめる（119〜130 行）。上の出力は、どれもその判定を通る形になっている。
+
+### 1.3.2 のコマンドで分かったこと（`--help` のみ実行）
+- `bd daemon` はなくなっている。
+- `bd migrate legacy-sqlite --source-db PATH --output PATH|-` がある。説明は「Read an authenticated legacy SQLite database as JSONL」（source は読み取り専用で開く）。
+- `bd migrate hooks --dry-run | --apply` がある。古い hooks を新しい形式（marker-managed）に移す計画を作り、適用する。
+- `bd hooks install | uninstall | list | run` がある。新しい hooks は `bd hooks run` を呼ぶ thin shim になっている。
+- **`bd sync` の意味が変わった。** 0.49.0 では JSONL への書き出しだったが、1.3.2 では「Dolt の remote と pull / push する」コマンドになった。
+  `--flush-only` というオプションはない。Dolt の remote がなければ、**git の origin を Dolt の remote として自動で採用する**動きもある。
+
+### 古い hooks と新しい版の組み合わせ
+今の hooks（[02_targets.md](02_targets.md) の pm, pc）は、PATH 上の `bd` を呼ぶ。
+- pre-commit: `bd sync --flush-only` が失敗すると **exit 1 で commit を止める**。
+- post-merge: `bd import -i .beads/issues.jsonl` を呼ぶ。失敗しても警告だけで、止めない。
+
+起こりうること:
+1. PATH の bd を 1.3.2 に替えた時点で、まだ移行していないリポジトリは開けなくなる。bd の hooks がある 18 か所では、`--flush-only` がないために commit も止まるとみられる。
+2. 移行が済んだリポジトリでも、PATH の bd が 0.49.0 のままなら、0.49.0 は新しい Dolt のストアを読めない。hooks が失敗して commit が止まるとみられる。
+3. 新しい hooks（`bd hooks run` を呼ぶ shim）を入れても、PATH の bd が 0.49.0 なら `hooks run` がないので動かない。
+
+→ **PATH の bd を替えることと、各リポジトリの hooks を入れ替えることは、同じ時期にまとめて行う必要がある。**
+ステップ 3 で、順番（全件の移行を一気に済ませるか、移行中は hooks を一時的に外すか）を決める。
+上の 1〜3 は推測で、試験移行（4a）で実際に確かめる。
+
 ## 未確認（次にやること）
 - [x] 公式の `docs/getting-started/upgrading.md`（v1.3.2）を読む（2026-10-25、上の節に記録）
 - [ ] 各 `.beads` の構成が本当に「`*.db` が 1 つ」か（棚卸しで確認）
@@ -159,6 +199,8 @@ WSL で Linux 用のバイナリを使って動かせば、Windows 特有の問�
 - [ ] `docs/RECOVERY.md`、`docs/recovery/` の内容
 - [ ] 1.3.0 の「v1.2.2 users 向け Breaking changes」と CHANGELOG `[1.2.1]` 節の要点
 - [ ] 1.3.2 の migration 0059 の注意書きの全文
-- [ ] Windows での入手方法（`go install` を続けるか、リリースバイナリ / `install.ps1` にするか。新しい版は CGO が必要な可能性あり）
+- [x] Windows での入手方法（2026-10-25、公式の zip で動く。上の「公式バイナリの入手と確認」に記録）
+- [ ] 1.3.2 の `bd migrate legacy-sqlite` が 0.49.0 の DB を読めるか（作業用のコピーで試す）
+- [ ] 古い hooks と新しい版を組み合わせたときに何が起きるか（試験移行で確かめる）
 - [x] bd daemon が動いているか（2026-10-25、動いていない。上の節に記録）
 - [ ] daemon の自動起動を止める方法（`--no-daemon`、環境変数）を 0.49.0 で確かめる
