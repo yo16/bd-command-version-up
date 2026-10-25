@@ -9,7 +9,7 @@
 | 2 | 対象の検索と棚卸し | 済 | [docs/02_targets.md](docs/02_targets.md) |
 | 3 | 方式の検討 | 途中（リハーサル済み、手順は案） | [docs/03_rehearsal.md](docs/03_rehearsal.md)、[docs/04_method.md](docs/04_method.md) |
 | 3.5 | バックアップ | 済 | `backup/2026-10-25/`（gitignore）、[docs/04_method.md](docs/04_method.md) |
-| 4a | 試験移行（影響の小さい 1〜2 件） | 途中（1 件目 済） | [docs/05_migration-log.md](docs/05_migration-log.md) |
+| 4a | 試験移行（影響の小さい 1〜2 件） | 済（2 件） | [docs/05_migration-log.md](docs/05_migration-log.md) |
 | 4b | 本番移行（1 件ずつ記録） | 未 | |
 | 5 | 検証（件数・未完了 issue の一致、hooks） | 未 | |
 

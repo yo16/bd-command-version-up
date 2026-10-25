@@ -8,6 +8,14 @@
 | # | リポジトリ | 日時 | 件数（元 → 1.3.2） | tombstone | hooks を外した | commit | 備考 |
 |---|---|---|---|---|---|---|---|
 | 1 | yo16/sql_viz_202604_old | 2026-10-25 | 27 → 27 | 0 | pre-commit, post-merge | `c9343d4`（dev） | 4a の 1 件目。下の「1 件目で分かったこと」 |
+| 2 | yo16/calc_20260317 | 2026-10-25 | 18 → 18 | 0 | pre-commit, post-merge | `85ebfb6`（dev） | 4a の 2 件目。AGENTS.md も commit。本物の issue への書き込みで自動の書き出しを確認 |
+
+## 2 件目（calc_20260317）で分かったこと
+- `.beads` の設定ファイルと AGENTS.md が git で管理されているリポジトリ。commit には `.beads` 以下の変更、`.gitignore`、AGENTS.md を含めた（`git add -u -- .beads .gitignore AGENTS.md`）。bd と関係のない変更（`.claude/settings.local.json` など）は含めていない。
+- `.beads/interactions.jsonl`（0 バイト）は新しいストアにないので、削除として commit した。1.3.2 では `audit.enabled` が既定で無効なので、使われない。
+- `.beads/config.yaml` は 1.3.2 の雛形に置き換わり、末尾に `export:` の 3 行（`auto: true`、`git-add: true`、`interval: 1s`）が入る。
+- **本物の issue への書き込みで、自動の書き出しを確かめた**（[../scripts/check-auto-export.ps1](../scripts/check-auto-export.ps1)）。closed の `calc_20260317-jfg` の notes に 1 行を追記（`--append-notes`）したところ、`issues.jsonl` が書き換わり、追記が入り、`git add` された。この追記も同じ commit に含めた。
+- 書き込むたびに `beads: repair: bd dolt remote add origin git+ssh://git@github.com/yo16/calc_20260317.git && bd dolt push` が出る（AGENTS.md で止めている）。
 
 ## 1 件目（sql_viz_202604_old）で分かったこと
 - **1.3.2 は、git の設定に `beads.role` がないと、コマンドのたびに警告を出す**（`warning: beads.role not configured (GH#2950).`）。作業用のコピーでは `bd init --non-interactive` が設定していたので、出ていなかった。
